@@ -8,3 +8,7 @@
   - [pk8_pem_to_keystore_keytool-importkeypair](./SignAndConvertor/pk8_pem_to_keystore_keytool-importkeypair.sh) _Last updated: 2024-04-15 02:22:14_
   - [sign_by_keystore](./SignAndConvertor/sign_by_keystore.sh) _Last updated: 2024-04-15 02:24:15_
   - [sign_by_pk8_pem](./SignAndConvertor/sign_by_pk8_pem.sh) _Last updated: 2024-04-15 02:23:52_
+
+### TODO
+  - Android Log 2 Csv Scripts, which convenient to debug the sequence bug. Better to create a graph.
+  - asc file 2 Csv Scripts, which convenient to debug the can signal bug.
