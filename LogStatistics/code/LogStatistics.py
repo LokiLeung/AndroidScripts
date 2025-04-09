@@ -2,6 +2,7 @@ import subprocess
 import os
 import time
 import threading
+import csv
 
 # Global variables
 process_names = {}  # Dictionary to store process names
@@ -138,6 +139,77 @@ def get_process_names():
         print("Error:", e)
     return process_names
 
+def save_logs_to_csv(parsed_logs, output_file="parsed_logs.csv"):
+    try:
+        # Open the CSV file for writing
+        with open(output_file, mode='w', newline='', encoding='utf-8') as csvfile:
+            fieldnames = [
+                '进程名', '进程号', '时间戳', '线程号', '日志等级', '标签', '日志信息', '字节大小'
+            ]
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+
+            # Write the header
+            writer.writeheader()
+
+            # Write each log entry as a row in the CSV
+            for line_number, log in parsed_logs.items():
+                writer.writerow({
+                    '进程名': log['process_name'],
+                    '进程号': log['process_id'],
+                    '时间戳': log['timestamp'],
+                    '线程号': log['thread_id'],
+                    '日志等级': log['log_level'],
+                    '标签': log['tag'],
+                    '日志信息': log['log_message'],
+                    '字节大小': log['byte_size']
+                })
+        print(f"Logs saved to {output_file}")
+    except Exception as e:
+        print("Error saving logs to CSV:", e)
+
+def save_summary_to_csv(process_logs, total_lines, total_bytes, output_file="summary.csv"):
+    try:
+        # Open the CSV file for writing
+        with open(output_file, mode='w', newline='', encoding='utf-8') as csvfile:
+            fieldnames = [
+                '进程名', '进程号', 'I', 'D', 'W', 'E', 'V', 'F', '总共多少行', '总共多少字节', '行数百分比', '字节百分比'
+            ]
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+
+            # Write the header
+            writer.writeheader()
+
+            # Write each process summary as a row in the CSV
+            for process_id, logs in process_logs.items():
+                log_levels = {'I': 0, 'D': 0, 'W': 0, 'E': 0, 'V': 0, 'F': 0}
+                for log in logs:
+                    log_level = log['log_level']
+                    if log_level in log_levels:
+                        log_levels[log_level] += 1
+
+                process_name = logs[0]['process_name']
+                line_percent = "{:.2f}%".format(len(logs) / total_lines * 100) if total_lines != 0 else "0.00%"
+                byte_percent = "{:.2f}%".format(
+                    sum(log['byte_size'] for log in logs) / total_bytes * 100) if total_bytes != 0 else "0.00%"
+
+                writer.writerow({
+                    '进程名': process_name,
+                    '进程号': process_id,
+                    'I': log_levels['I'],
+                    'D': log_levels['D'],
+                    'W': log_levels['W'],
+                    'E': log_levels['E'],
+                    'V': log_levels['V'],
+                    'F': log_levels['F'],
+                    '总共多少行': len(logs),
+                    '总共多少字节': sum(log['byte_size'] for log in logs),
+                    '行数百分比': line_percent,
+                    '字节百分比': byte_percent
+                })
+
+        print(f"Summary saved to {output_file}")
+    except Exception as e:
+        print("Error saving summary to CSV:", e)
 
 if __name__ == "__main__":
     # Step 0
@@ -159,5 +231,21 @@ if __name__ == "__main__":
     # Step 3
     parsed_logs = parse_and_save_logs()
 
+    # Save parsed logs to CSV
+    save_logs_to_csv(parsed_logs)
+
     # Step 4
     print_logs_by_process(parsed_logs)
+
+    # Save summary to CSV
+    process_logs = {}
+    for line_number, log in parsed_logs.items():
+        process_id = log['process_id']
+        if process_id not in process_logs:
+            process_logs[process_id] = []
+        process_logs[process_id].append(log)
+
+    total_lines = sum(len(logs) for logs in process_logs.values())
+    total_bytes = sum(log['byte_size'] for logs in parsed_logs.values())
+
+    save_summary_to_csv(process_logs, total_lines, total_bytes)
